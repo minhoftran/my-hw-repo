@@ -1,8 +1,7 @@
 import pandas as pd
 import numpy as np
-from sklearn.linear_model import LogisticRegression, RidgeClassifierCV
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
-from sklearn.model_selection import GridSearchCV    # haven't figured out how to use yet. -mt
+from sklearn.linear_model import LogisticRegression, RidgeClassifier, SGDClassifier
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, AdaBoostClassifier, ExtraTreesClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.cross_validation import cross_val_score
 from sklearn.preprocessing import Imputer
@@ -11,7 +10,7 @@ from sklearn.base import BaseEstimator
 import random
 
 import pdb
-# from tqdm import tqdm   # fancy status bar thing -mt
+from tqdm import tqdm   # fancy status bar thing -mt
 
 class Bagging(BaseEstimator):
     
@@ -22,8 +21,8 @@ class Bagging(BaseEstimator):
         
     def fit(self, X, y):
         N = X.shape[0]
-        for model in self.models:
-        # for model in tqdm(self.models):
+        # for model in self.models:
+        for model in tqdm(self.models):
             bag_indices = np.random.randint(0, N, int(N*self.bag_size))
             model.fit(X[bag_indices], y[bag_indices])
         return self
@@ -105,10 +104,11 @@ class CreditScoreFeaturizer():
     imputer = Imputer(missing_values='NaN', strategy='mean', axis=0)
     data = imputer.fit_transform(data)
 
-    #return np.hstack([data])
+    # return np.hstack([data])
 
     # Scaling features may be important you have very large outliers or need more intepretable coefficients
-    scaler = preprocessing.StandardScaler()
+    # scaler = preprocessing.StandardScaler()
+    scaler = preprocessing.RobustScaler(quantile_range=(25, 75))	# seems to work a fraction better. -mt
     scaled_income = scaler.fit_transform([data[:,1]])
 
     data =  np.hstack([data, scaled_income.reshape(len(data), 1)])
@@ -148,7 +148,7 @@ def main():
   X_test = X[len(train_input):]
 
   ## Use any model that we might find appropriate
-  #model = RidgeClassifierCV(alphas=[ 0.1, 1., 10. ])
+  # model = RidgeClassifierCV(alphas=[ 0.1, 1., 10. ])
 
 
   ##Set target variable y
@@ -161,16 +161,19 @@ def main():
   model = LogisticRegression(C=10)
   models = [
     LogisticRegression(C=10),
+    # LogisticRegression(C=50, solver="lbfgs", n_jobs=5), # worse -mt
     RandomForestClassifier(n_estimators=50, n_jobs=5, criterion='gini'),
     GradientBoostingClassifier(n_estimators=25, max_depth=5),
-    ## add SGDClassifier
-    ## figure out RidgeClassifierCV
+    AdaBoostClassifier(base_estimator=None, n_estimators=50, learning_rate=1.0),
+    # ExtraTreesClassifier(n_estimators=10, max_depth=None, max_features='auto', max_leaf_nodes=None, n_jobs=5),
+    # SGDClassifier(max_iter=50, tol=None, loss="modified_huber"),	# doesn't work well (~0.5)
     ]
   model = Bagging(models, bag_size)
 
   #pdb.set_trace()
   print "Cross validating..."
-  print np.mean(cross_val_score(model, X_train, y.values, scoring='roc_auc', cv=10))
+  # print np.mean(cross_val_score(model, X_train, y.values, scoring='roc_auc', cv=10))
+  print np.mean(cross_val_score(model, X_train, y.values, scoring='roc_auc', cv=5))
 
   print "Training final model..."
   model = model.fit(X_train, y)
