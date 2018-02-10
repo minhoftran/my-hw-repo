@@ -1,0 +1,9 @@
+General Assembly - Data Science
+Final Project Presentation
+2/1/18
+
+Presentation link:
+https://docs.google.com/presentation/d/1HpkzKkiirlp3J-CVojev0TQEWt2_UgS8UFPPz-_Lzso/edit?usp=sharing
+
+Link to ipython notebook:
+https://github.com/minhoftran/my-hw-repo/blob/master/final_project_experiment_actualdata.ipynb
